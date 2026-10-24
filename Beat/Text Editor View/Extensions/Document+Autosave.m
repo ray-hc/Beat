@@ -49,6 +49,22 @@
 	}
 }
 
+/// If autosave is on, save on close instead of asking the user
+- (void)canCloseDocumentWithDelegate:(id)delegate shouldCloseSelector:(SEL)shouldCloseSelector contextInfo:(void *)contextInfo
+{
+	if (!(self.autosave && self.documentEdited && self.fileURL)) {
+		[super canCloseDocumentWithDelegate:delegate shouldCloseSelector:shouldCloseSelector contextInfo:contextInfo];
+		return;
+	}
+
+	// Saving directly skips the commit prompt, same as choosing "Save" in the close dialog.
+	// If saving fails, the document is still edited and the user will be asked as usual.
+	[self saveToURL:self.fileURL ofType:self.fileType forSaveOperation:NSSaveOperation completionHandler:^(NSError * _Nullable error) {
+		if (error) NSLog(@"Autosave on close failed: %@", error);
+		[super canCloseDocumentWithDelegate:delegate shouldCloseSelector:shouldCloseSelector contextInfo:contextInfo];
+	}];
+}
+
 /// Before the user chooses where to place a new document, it has an autosaved URL only.
 - (NSURL *)mostRecentlySavedFileURL;
 {
